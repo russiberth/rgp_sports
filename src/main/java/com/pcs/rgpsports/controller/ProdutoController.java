@@ -1,7 +1,13 @@
 package com.pcs.rgpsports.controller;
 
+import com.pcs.rgpsports.dto.produto.ProdutoRequestDTO;
+import com.pcs.rgpsports.dto.produto.ProdutoResponseDTO;
 import com.pcs.rgpsports.model.Produto;
 import com.pcs.rgpsports.service.ProdutoService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -13,47 +19,107 @@ import java.util.List;
 @RestController
 @RequestMapping("/produtos")
 @RequiredArgsConstructor
+@Tag(name = "Produtos", description = "Operações de catálogo de camisas esportivas")
 public class ProdutoController {
 
     private final ProdutoService produtoService;
 
-    // GET /produtos — lista todos os produtos
+    @Operation(summary = "Lista todos os produtos")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Lista retornada com sucesso")
+    })
     @GetMapping
-    public ResponseEntity<List<Produto>> listarTodos() {
-        return ResponseEntity.ok(produtoService.listarTodos());
+    public ResponseEntity<List<ProdutoResponseDTO>> listarTodos() {
+        List<ProdutoResponseDTO> lista = produtoService.listarTodos()
+                .stream()
+                .map(ProdutoResponseDTO::from)
+                .toList();
+        return ResponseEntity.ok(lista);
     }
 
-    // GET /produtos/{id} — busca produto por ID
+    @Operation(summary = "Busca produto por ID")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Produto encontrado"),
+        @ApiResponse(responseCode = "404", description = "Produto não encontrado")
+    })
     @GetMapping("/{id}")
-    public ResponseEntity<Produto> buscarPorId(@PathVariable Long id) {
-        return ResponseEntity.ok(produtoService.buscarPorId(id));
+    public ResponseEntity<ProdutoResponseDTO> buscarPorId(@PathVariable Long id) {
+        return ResponseEntity.ok(ProdutoResponseDTO.from(produtoService.buscarPorId(id)));
     }
 
-    // GET /produtos/modalidade/{modalidade} — filtra por modalidade
+    @Operation(summary = "Busca produtos por modalidade")
     @GetMapping("/modalidade/{modalidade}")
-    public ResponseEntity<List<Produto>> buscarPorModalidade(@PathVariable String modalidade) {
-        return ResponseEntity.ok(produtoService.buscarPorModalidade(modalidade));
+    public ResponseEntity<List<ProdutoResponseDTO>> buscarPorModalidade(@PathVariable String modalidade) {
+        List<ProdutoResponseDTO> lista = produtoService.buscarPorModalidade(modalidade)
+                .stream()
+                .map(ProdutoResponseDTO::from)
+                .toList();
+        return ResponseEntity.ok(lista);
     }
 
-    // GET /produtos/time/{time} — busca por nome do time
+    @Operation(summary = "Busca produtos por time")
     @GetMapping("/time/{time}")
-    public ResponseEntity<List<Produto>> buscarPorTime(@PathVariable String time) {
-        return ResponseEntity.ok(produtoService.buscarPorTime(time));
+    public ResponseEntity<List<ProdutoResponseDTO>> buscarPorTime(@PathVariable String time) {
+        List<ProdutoResponseDTO> lista = produtoService.buscarPorTime(time)
+                .stream()
+                .map(ProdutoResponseDTO::from)
+                .toList();
+        return ResponseEntity.ok(lista);
     }
 
-    // POST /produtos — cadastra novo produto
+    @Operation(summary = "Cadastra novo produto")
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Produto criado com sucesso"),
+        @ApiResponse(responseCode = "400", description = "Dados inválidos")
+    })
     @PostMapping
-    public ResponseEntity<Produto> salvar(@RequestBody @Valid Produto produto) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(produtoService.salvar(produto));
+    public ResponseEntity<ProdutoResponseDTO> salvar(@RequestBody @Valid ProdutoRequestDTO dto) {
+        // Converte RequestDTO → Entity
+        Produto produto = new Produto();
+        produto.setTime(dto.time());
+        produto.setModalidade(dto.modalidade());
+        produto.setEstoque(dto.estoque());
+        produto.setTamanho(dto.tamanho());
+        produto.setGenero(dto.genero());
+        produto.setImagens(dto.imagens());
+        produto.setPreco(dto.preco());
+        produto.setDescricao(dto.descricao());
+        produto.setTemporada(dto.temporada());
+        produto.setStatus("ativo");
+
+        Produto salvo = produtoService.salvar(produto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ProdutoResponseDTO.from(salvo));
     }
 
-    // PUT /produtos/{id} — atualiza produto existente
+    @Operation(summary = "Atualiza produto existente")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Produto atualizado"),
+        @ApiResponse(responseCode = "404", description = "Produto não encontrado"),
+        @ApiResponse(responseCode = "400", description = "Dados inválidos")
+    })
     @PutMapping("/{id}")
-    public ResponseEntity<Produto> atualizar(@PathVariable Long id, @RequestBody @Valid Produto produto) {
-        return ResponseEntity.ok(produtoService.atualizar(id, produto));
+    public ResponseEntity<ProdutoResponseDTO> atualizar(@PathVariable Long id,
+            @RequestBody @Valid ProdutoRequestDTO dto) {
+        Produto produto = new Produto();
+        produto.setTime(dto.time());
+        produto.setModalidade(dto.modalidade());
+        produto.setEstoque(dto.estoque());
+        produto.setTamanho(dto.tamanho());
+        produto.setGenero(dto.genero());
+        produto.setImagens(dto.imagens());
+        produto.setPreco(dto.preco());
+        produto.setDescricao(dto.descricao());
+        produto.setTemporada(dto.temporada());
+        produto.setStatus("ativo");
+
+        return ResponseEntity.ok(ProdutoResponseDTO.from(produtoService.atualizar(id, produto)));
     }
 
-    // DELETE /produtos/{id} — remove produto
+    @Operation(summary = "Remove produto")
+    @ApiResponses({
+        @ApiResponse(responseCode = "204", description = "Produto removido"),
+        @ApiResponse(responseCode = "404", description = "Produto não encontrado")
+    })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
         produtoService.deletar(id);

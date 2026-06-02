@@ -1,7 +1,13 @@
 package com.pcs.rgpsports.controller;
 
+import com.pcs.rgpsports.dto.cupom.CupomRequestDTO;
+import com.pcs.rgpsports.dto.cupom.CupomResponseDTO;
 import com.pcs.rgpsports.model.Cupom;
 import com.pcs.rgpsports.service.CupomService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -13,41 +19,89 @@ import java.util.List;
 @RestController
 @RequestMapping("/cupons")
 @RequiredArgsConstructor
+@Tag(name = "Cupons", description = "Operações de cupons de desconto")
 public class CupomController {
 
     private final CupomService cupomService;
 
-    // GET /cupons — lista todos os cupons
+    @Operation(summary = "Lista todos os cupons")
+    @ApiResponse(responseCode = "200", description = "Lista retornada com sucesso")
     @GetMapping
-    public ResponseEntity<List<Cupom>> listarTodos() {
-        return ResponseEntity.ok(cupomService.listarTodos());
+    public ResponseEntity<List<CupomResponseDTO>> listarTodos() {
+        List<CupomResponseDTO> lista = cupomService.listarTodos()
+                .stream()
+                .map(CupomResponseDTO::from)
+                .toList();
+        return ResponseEntity.ok(lista);
     }
 
-    // GET /cupons/{id} — busca cupom por ID
+    @Operation(summary = "Busca cupom por ID")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Cupom encontrado"),
+        @ApiResponse(responseCode = "404", description = "Cupom não encontrado")
+    })
     @GetMapping("/{id}")
-    public ResponseEntity<Cupom> buscarPorId(@PathVariable Long id) {
-        return ResponseEntity.ok(cupomService.buscarPorId(id));
+    public ResponseEntity<CupomResponseDTO> buscarPorId(@PathVariable Long id) {
+        return ResponseEntity.ok(CupomResponseDTO.from(cupomService.buscarPorId(id)));
     }
 
-    // GET /cupons/validar/{codigo} — valida se cupom pode ser usado
+    @Operation(summary = "Valida se cupom pode ser usado")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Cupom válido"),
+        @ApiResponse(responseCode = "404", description = "Cupom não encontrado"),
+        @ApiResponse(responseCode = "400", description = "Cupom inválido ou expirado")
+    })
     @GetMapping("/validar/{codigo}")
-    public ResponseEntity<Cupom> validar(@PathVariable String codigo) {
-        return ResponseEntity.ok(cupomService.validarCupom(codigo));
+    public ResponseEntity<CupomResponseDTO> validar(@PathVariable String codigo) {
+        return ResponseEntity.ok(CupomResponseDTO.from(cupomService.validarCupom(codigo)));
     }
 
-    // POST /cupons — cadastra novo cupom
+    @Operation(summary = "Cadastra novo cupom")
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Cupom criado com sucesso"),
+        @ApiResponse(responseCode = "400", description = "Dados inválidos"),
+        @ApiResponse(responseCode = "409", description = "Código de cupom já existe")
+    })
     @PostMapping
-    public ResponseEntity<Cupom> salvar(@RequestBody @Valid Cupom cupom) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(cupomService.salvar(cupom));
+    public ResponseEntity<CupomResponseDTO> salvar(@RequestBody @Valid CupomRequestDTO dto) {
+        // Converte RequestDTO → Entity
+        Cupom cupom = new Cupom();
+        cupom.setCodigo(dto.codigo());
+        cupom.setTipo(dto.tipo());
+        cupom.setValorDesconto(dto.valorDesconto());
+        cupom.setValidade(dto.validade());
+        cupom.setLimiteUso(dto.limiteUso());
+        cupom.setValorMinimoPedido(dto.valorMinimoPedido());
+        cupom.setStatus("ativo");
+
+        Cupom salvo = cupomService.salvar(cupom);
+        return ResponseEntity.status(HttpStatus.CREATED).body(CupomResponseDTO.from(salvo));
     }
 
-    // PUT /cupons/{id} — atualiza cupom existente
+    @Operation(summary = "Atualiza cupom existente")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Cupom atualizado"),
+        @ApiResponse(responseCode = "404", description = "Cupom não encontrado"),
+        @ApiResponse(responseCode = "400", description = "Dados inválidos")
+    })
     @PutMapping("/{id}")
-    public ResponseEntity<Cupom> atualizar(@PathVariable Long id, @RequestBody @Valid Cupom cupom) {
-        return ResponseEntity.ok(cupomService.atualizar(id, cupom));
+    public ResponseEntity<CupomResponseDTO> atualizar(@PathVariable Long id,
+            @RequestBody @Valid CupomRequestDTO dto) {
+        Cupom cupom = new Cupom();
+        cupom.setTipo(dto.tipo());
+        cupom.setValorDesconto(dto.valorDesconto());
+        cupom.setValidade(dto.validade());
+        cupom.setLimiteUso(dto.limiteUso());
+        cupom.setValorMinimoPedido(dto.valorMinimoPedido());
+
+        return ResponseEntity.ok(CupomResponseDTO.from(cupomService.atualizar(id, cupom)));
     }
 
-    // DELETE /cupons/{id} — remove cupom
+    @Operation(summary = "Remove cupom")
+    @ApiResponses({
+        @ApiResponse(responseCode = "204", description = "Cupom removido"),
+        @ApiResponse(responseCode = "404", description = "Cupom não encontrado")
+    })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
         cupomService.deletar(id);

@@ -1,15 +1,15 @@
 package com.pcs.rgpsports.exception;
 
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
 
 // Intercepta todas as exceções da aplicação e retorna respostas padronizadas
 @RestControllerAdvice
@@ -35,7 +35,7 @@ public class GlobalExceptionHandler {
             campos.put(field.getField(), field.getDefaultMessage());
         }
 
-        erro.put("status", 400);
+        erro.put("status", 400); 
         erro.put("mensagem", "Erro de validação");
         erro.put("campos", campos);
         erro.put("timestamp", LocalDateTime.now());
