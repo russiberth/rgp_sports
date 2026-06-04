@@ -1,5 +1,6 @@
 package com.pcs.rgpsports.exception;
 
+import org.springframework.security.core.AuthenticationException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -10,6 +11,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
 
 // Intercepta todas as exceções da aplicação e retorna respostas padronizadas
 @RestControllerAdvice
@@ -51,4 +53,25 @@ public class GlobalExceptionHandler {
         erro.put("timestamp", LocalDateTime.now());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(erro);
     }
+
+    // Trata usuário duplicado no cadastro — retorna 409
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> handleConflito(IllegalArgumentException ex) {
+        Map<String, Object> erro = new HashMap<>();
+        erro.put("status", 409);
+        erro.put("mensagem", ex.getMessage());
+        erro.put("timestamp", LocalDateTime.now());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(erro);
+}
+
+    // Trata credenciais inválidas no login — retorna 401
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<Map<String, Object>> handleAuth(AuthenticationException ex) {
+        Map<String, Object> erro = new HashMap<>();
+        erro.put("status", 401);
+        erro.put("mensagem", "Usuário ou senha inválidos.");
+        erro.put("timestamp", LocalDateTime.now());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(erro);
+}   
+    
 }
